@@ -5,6 +5,44 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AuraSplit</title>
+    <script>
+      window.addEventListener('error', function(e) {
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.backgroundColor = '#fee2e2';
+        div.style.color = '#991b1b';
+        div.style.padding = '1.5rem';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '14px';
+        div.style.zIndex = '999999';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.borderBottom = '4px solid #f87171';
+        div.innerText = 'Global Error Caught:\n' + e.message + '\n\nSource: ' + e.filename + ':' + e.lineno + ':' + e.colno + '\n\nStack:\n' + (e.error ? e.error.stack : 'N/A');
+        document.body.appendChild(div);
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.backgroundColor = '#fef3c7';
+        div.style.color = '#92400e';
+        div.style.padding = '1.5rem';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '14px';
+        div.style.zIndex = '999999';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.borderBottom = '4px solid #fbbf24';
+        var reason = e.reason ? (e.reason.message || e.reason) : 'Unknown reason';
+        var stack = e.reason && e.reason.stack ? e.reason.stack : 'N/A';
+        div.innerText = 'Unhandled Promise Rejection:\n' + reason + '\n\nStack:\n' + stack;
+        document.body.appendChild(div);
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

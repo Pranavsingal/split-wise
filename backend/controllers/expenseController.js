@@ -17,6 +17,7 @@ const addExpense = async (req, res) => {
     const expense = await Expense.create({
       description,
       amount,
+      category: req.body.category || 'Other',
       payer,
       group: group || null,
       splits,
@@ -151,10 +152,95 @@ const getSettlements = async (req, res) => {
   }
 };
 
+// @desc    Get analytics data (monthly spending + category breakdown)
+// @route   GET /api/expenses/analytics
+// @access  Private
+const getAnalytics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Monthly spending (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const monthlySpending = await Expense.aggregate([
+      {
+        $match: {
+          $or: [{ payer: userId }, { 'splits.user': userId }],
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+          },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]);
+
+    // Format monthly data with month names
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const formattedMonthly = monthlySpending.map((item) => ({
+      month: `${monthNames[item._id.month - 1]} ${item._id.year}`,
+      total: Number(item.total.toFixed(2)),
+      count: item.count,
+    }));
+
+    // Category breakdown
+    const categoryBreakdown = await Expense.aggregate([
+      {
+        $match: {
+          $or: [{ payer: userId }, { 'splits.user': userId }],
+        },
+      },
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { total: -1 } },
+    ]);
+
+    const formattedCategories = categoryBreakdown.map((item) => ({
+      category: item._id || 'Other',
+      total: Number(item.total.toFixed(2)),
+      count: item.count,
+    }));
+
+    // Summary stats
+    const totalSpent = formattedCategories.reduce((acc, c) => acc + c.total, 0);
+    const avgPerMonth = formattedMonthly.length > 0 ? totalSpent / formattedMonthly.length : 0;
+    const topCategory = formattedCategories.length > 0 ? formattedCategories[0].category : 'N/A';
+
+    res.json({
+      monthlySpending: formattedMonthly,
+      categoryBreakdown: formattedCategories,
+      summary: {
+        totalSpent: Number(totalSpent.toFixed(2)),
+        avgPerMonth: Number(avgPerMonth.toFixed(2)),
+        topCategory,
+        totalExpenses: formattedCategories.reduce((acc, c) => acc + c.count, 0),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   addExpense,
   getExpenses,
   addSettlement,
   getBalances,
   getSettlements,
+  getAnalytics,
 };

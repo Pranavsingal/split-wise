@@ -6,7 +6,7 @@ const generateToken = require('../utils/generateToken');
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -17,7 +17,6 @@ const registerUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password,
     });
 
     if (user) {
@@ -35,16 +34,16 @@ const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Auth user & get token
+// @desc    Auth user & get token (by email only)
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
     const user = await User.findOne({ email });
 
-    if (user && (await user.matchPassword(password))) {
+    if (user) {
       res.json({
         _id: user._id,
         name: user.name,
@@ -52,7 +51,7 @@ const loginUser = async (req, res) => {
         token: generateToken(user._id),
       });
     } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+      res.status(401).json({ message: 'No account found with this email' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -17,13 +17,13 @@ const splitSchema = mongoose.Schema(
       default: 'EQUAL',
     },
     percentage: {
-      type: Number, // Only required if splitType is PERCENTAGE
+      type: Number,
     },
   },
   { _id: false }
 );
 
-const expenseSchema = mongoose.Schema(
+const recurringExpenseSchema = mongoose.Schema(
   {
     description: {
       type: String,
@@ -43,11 +43,20 @@ const expenseSchema = mongoose.Schema(
       required: true,
       ref: 'User',
     },
-    group: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Group',
-    },
     splits: [splitSchema],
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly'],
+      required: [true, 'Please select a frequency'],
+    },
+    nextRunDate: {
+      type: Date,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -59,4 +68,4 @@ const expenseSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Expense', expenseSchema);
+module.exports = mongoose.model('RecurringExpense', recurringExpenseSchema);
